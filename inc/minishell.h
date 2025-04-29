@@ -57,5 +57,7 @@ void	handle_signal_interrupt(int sig);
 
 // built in
 void    builtin_pwd();
+void	builtin_env(t_env **env);
+void	builtin_unset(t_env **env, char *value_delete);
 
 # endif

@@ -43,7 +43,10 @@ int	main(int argc, char **argv, char **env)
 	while ((rl = getmyline()) && ft_strcmp(rl, "exit") != 0)
 	{
 		if (rl[0] == 'a')
-			builtin_pwd();
+		{
+			builtin_unset(&env_result, "HOME");
+			builtin_env(&env_result);
+		}
 		printf("%s\n", rl);
 		add_history(rl);
 	}
