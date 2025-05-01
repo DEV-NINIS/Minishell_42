@@ -114,13 +114,14 @@ int		add_env(t_env **env, char *key, char *value)
 
 void	free_env(t_env **env)
 {
-    while ((*env)->previous != NULL)
-        (*env) = (*env)->previous;
     while ((*env)->next != NULL)
+        (*env) = (*env)->previous;
+    while ((*env)->previous != NULL)
     {
+        printf("previous is -> %p\n", (*env)->previous);
         free((*env)->current_key);
         free((*env)->current_value);
-        (*env) = (*env)->next;
+        (*env) = (*env)->previous;
     }
 }
 
