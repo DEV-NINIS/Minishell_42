@@ -12,16 +12,15 @@
 #include <unistd.h>
 #include <signal.h>
 
+typedef enum Token {
+    WORD,           // vaut 0
+    PIPE,           // vaut 1
+    REDIRECT_IN,    // vaut 2
+    REDIRECT_OUT,   // vaut 3
+    APPEND,         // vaut 4
+    HEREDOC         // vaut 5
+} t_Token;
 
-enum Token
-{
-	WORD,
-	PIPE,
-	WHITESPACE,
-	SINGLE_QUOTE,
-	DOUBLE_QUOTE,
-	OPERATOR,
-};
 enum type_signal
 {
 	NO_RESULT = -1,
@@ -32,8 +31,11 @@ enum type_signal
 
 typedef struct s_lexer
 {
-	char *content;
-	enum Token token;
+	char 			*content;
+	t_Token	 		token;
+	struct s_lexer	*next;
+	struct s_lexer	*previous;
+
 } t_lexer;
 
 typedef struct s_env
@@ -55,9 +57,14 @@ void	free_env(t_env **env);
 // signals
 void	handle_signal_interrupt(int sig);
 
+// parsing
+t_lexer	*handle_line(char *line);
+char	*cpy_word(char *line, int *count);
+
 // built in
 void    builtin_pwd();
 void	builtin_env(t_env **env);
 void	builtin_unset(t_env **env, char *value_delete);
+int		builtin_unset_test_equal(t_env **env, char *value_delete, int count_forward, t_env *temp);
 
 # endif

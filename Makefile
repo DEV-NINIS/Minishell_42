@@ -8,7 +8,10 @@ OBJ_PATH = obj/
 SRC		= readline.c \
 		  signals.c \
 		  builtins.c \
-		  env.c
+		  env.c \
+		  expand.c \
+		  token_word.c \
+		  parse_line.c
 
 
 SRCS		= $(addprefix $(SRC_PATH), $(SRC))
