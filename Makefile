@@ -11,7 +11,8 @@ SRC		= readline.c \
 		  env.c \
 		  expand.c \
 		  token_word.c \
-		  parse_line.c
+		  parse_line.c \
+		  exec.c
 
 
 SRCS		= $(addprefix $(SRC_PATH), $(SRC))

@@ -26,6 +26,7 @@ int	main(int argc, char **argv, char **env)
 	char *rl;
 	t_env	*env_result;
 	t_lexer	*lexer;
+	t_sig	sig;
 
 	env_result = NULL;
 	if (!argc || !argv)
@@ -48,6 +49,7 @@ int	main(int argc, char **argv, char **env)
 				lexer = lexer->next;
 			}
 			printf("%s\n", lexer->content);
+			launch_child_process("/usr/bin/git", argv, env, &sig);
 		}
 		printf("%s\n", rl);
 		add_history(rl);

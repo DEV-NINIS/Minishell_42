@@ -90,6 +90,7 @@ t_env	*init_env_list(char **env)
         current = current->previous;
     return (current);
 }
+
 int		add_env(t_env **env, char *key, char *value)
 {
     t_env   *temp;

@@ -5,12 +5,18 @@
 #define FAILED_FREE 0
 
 #include "../libft/libft.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <unistd.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <sys/wait.h>
+#include <limits.h>
+#include <errno.h>
 
 typedef enum Token {
     WORD,           // vaut 0
@@ -46,6 +52,14 @@ typedef struct s_env
 	struct s_env	*previous;
 } t_env;
 
+typedef struct	s_sig
+{
+	int				sigint;
+	int				sigquit;
+	int				exit_status;
+	pid_t			pid;
+}				t_sig;
+
 // init env
 int		ft_strlen_key(char *str_complete_line);
 int		ft_strlen_value(char *str_complete_line);
@@ -66,5 +80,10 @@ void    builtin_pwd();
 void	builtin_env(t_env **env);
 void	builtin_unset(t_env **env, char *value_delete);
 int		builtin_unset_test_equal(t_env **env, char *value_delete, int count_forward, t_env *temp);
+
+// exec 
+int		if_is_builtin();
+void	launch_child_process(char *path, char **args, char **envp, t_sig *sig);
+
 
 # endif
