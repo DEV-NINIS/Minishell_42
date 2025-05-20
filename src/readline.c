@@ -26,7 +26,6 @@ int	main(int argc, char **argv, char **env)
 	char *rl;
 	t_env	*env_result;
 	t_lexer	*lexer;
-	t_sig	sig;
 
 	env_result = NULL;
 	if (!argc || !argv)
@@ -35,26 +34,59 @@ int	main(int argc, char **argv, char **env)
 
 	lexer = NULL;
 	signal(SIGINT, handle_signal_interrupt);
-	rl = NULL;	
+	rl = NULL;
 	while ((rl = getmyline()) && ft_strcmp(rl, "exit") != 0)
 	{
 		if (ft_strlen(rl) >= 10 && (lexer || !lexer))
 		{
-			lexer = handle_line(rl);
-			while (lexer->previous != NULL)
-				lexer = lexer->previous;
-			while (lexer->next != NULL)
-			{
-				printf("%s\n", lexer->content);
-				lexer = lexer->next;
-			}
-			printf("%s\n", lexer->content);
-			launch_child_process("/usr/bin/git", argv, env, &sig);
+			
+			t_cmd *cmd1 = malloc(sizeof(t_cmd));
+			t_cmd *cmd2 = malloc(sizeof(t_cmd));
+
+			// Commande 1 : ls -l
+			cmd1->args = malloc(sizeof(char *) * 3);
+			cmd1->args[0] = strdup("wc");
+			cmd1->args[1] = ft_strdup("-l");
+			cmd1->args[2] = NULL;
+			cmd1->infile = NULL;
+			cmd1->outfile = NULL;
+			cmd1->append = 0;
+			cmd1->heredoc = 1;
+			cmd1->heredoc_delimiter = ft_strdup("anis");
+			cmd1->next = cmd2;
+			cmd1->previous = NULL;
+
+			// // Commande 2 : grep txt
+			cmd2->args = malloc(sizeof(char *) * 3);
+			cmd2->args[0] = strdup("wc");
+			cmd2->args[1] = ft_strdup("-l");
+			cmd2->args[2] = NULL;
+			cmd2->infile = NULL;
+			cmd2->outfile = NULL;
+			cmd2->append = 0;
+			cmd2->heredoc = 1;
+			cmd2->heredoc_delimiter = ft_strdup("anis");
+			cmd2->next = NULL;
+			cmd2->previous = cmd1;
+			
+
+			execute_pipeline(cmd1, &env_result);
+
+			// lexer = handle_line(rl);
+			// while (lexer->previous != NULL)
+			// 	lexer = lexer->previous;
+			// while (lexer->next != NULL)
+			// {
+			// 	printf("%s\n", lexer->content);
+			// 	lexer = lexer->next;
+			// }
+			// printf("%s\n", lexer->content);
+			// launch_child_process(add_path_build("git add -A", "/usr/bin/"), argv, env);
 		}
 		printf("%s\n", rl);
 		add_history(rl);
+		free(rl);
 	}
 	free_env(&env_result);
-	free(rl);
 	return (0);
 }

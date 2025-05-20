@@ -35,6 +35,14 @@ enum type_signal
 	CRTL_BACKSLASH = 28,
 };
 
+typedef struct char_list
+{
+	char					*content;
+	struct char_list		*next;
+	struct char_list		*previous;
+
+} t_char_list;
+
 typedef struct s_lexer
 {
 	char 			*content;
@@ -52,7 +60,19 @@ typedef struct s_env
 	struct s_env	*previous;
 } t_env;
 
-typedef struct	s_sig
+typedef struct s_cmd
+{
+	char        	**args;     // Arguments de la commande
+    char        	*infile;    // Redirection entrée (ou NULL)
+    char        	*outfile;   // Redirection sortie (ou NULL)
+    int         	append;     // 1 si c'est >>
+    int         	heredoc;
+	char			*heredoc_delimiter;
+	struct s_cmd	*next;
+	struct s_cmd	*previous;
+} t_cmd;
+
+typedef struct s_sig
 {
 	int				sigint;
 	int				sigquit;
@@ -81,9 +101,31 @@ void	builtin_env(t_env **env);
 void	builtin_unset(t_env **env, char *value_delete);
 int		builtin_unset_test_equal(t_env **env, char *value_delete, int count_forward, t_env *temp);
 
-// exec 
+// exec
 int		if_is_builtin();
-void	launch_child_process(char *path, char **args, char **envp, t_sig *sig);
+char	*add_path_build(char *word_command, char *path_content);
+char	**convert_l_env_to_char_env(t_env **env);
+int		convert_l_env_to_char_env_utils(t_env **env, char **result, int *count);
 
+void	execute_simple_command(t_cmd *cmd, t_env **envp);
+void 	execute_pipeline(t_cmd *cmds, t_env **env);
+void	read_line_heredoc(t_char_list **list, char *arg_end);
+char	*get_my_line_here_doc();
+void	launch_child_pipeline(t_cmd *cmd, t_env **envp);
+
+// utils chain list
+void	*push_back_list(char *content, t_char_list **list);
+char	**from_chain_list_to_2star_char(t_char_list **list);
+void	free_char_list(t_char_list **list);
+
+// 
+char	**convert_chain_to_star_char(t_char_list **list_chain);
+int		convert_chain_to_star_char_utils(t_char_list **list_chain, char **result, int *count);
+
+char    *expand_string(const char *input, t_env *env, int exit_status);
+void    expand_cmd_args(t_cmd *cmd, t_env *env, int exit_status);
+void    expand_all_commands(t_cmd *cmds, t_env *env, int exit_status);
+
+// static t_sig g_sig;
 
 # endif
