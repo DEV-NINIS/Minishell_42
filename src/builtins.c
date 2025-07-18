@@ -12,79 +12,87 @@
 
 #include <../inc/minishell.h>
 
-void    builtin_pwd()
+void	builtin_env(t_env **env)
 {
-    char cwd[1024];
-
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
-        printf("%s\n", cwd);
-    else
-        perror("pwd");
+	while ((*env)->previous != NULL)
+		(*env) = (*env)->previous;
+	while ((*env)->next != NULL)
+	{
+		printf("%s=%s\n", (*env)->current_key, (*env)->current_value);
+		(*env) = (*env)->next;
+	}
+	printf("%s=%s\n", (*env)->current_key, (*env)->current_value);
 }
 
-void    builtin_env(t_env **env)
+int	builtin_cd(char **args, t_env **env)
 {
-    while ((*env)->previous != NULL)
-        (*env) = (*env)->previous;
+	char	*target_dir;
+	char	*home_dir;
 
-    while ((*env)->next != NULL)
-    {
-        printf("%s=%s\n", (*env)->current_key, (*env)->current_value);
-        (*env) = (*env)->next;
-    }
-    printf("%s=%s\n", (*env)->current_key, (*env)->current_value);
+	if (!args[1])
+	{
+		home_dir = get_env_value("HOME", env);
+		if (!home_dir)
+		{
+			write(2, "cd: HOME not set\n", 18);
+			return (0);
+		}
+		target_dir = home_dir;
+	}
+	else
+		target_dir = args[1];
+	if (chdir(target_dir) != 0)
+	{
+		write(2, "cd: ", 4);
+		perror(target_dir);
+	}
+	return (1);
 }
 
-int	builtin_unset_test_equal(t_env **env, char *value_delete, int count_forward, t_env *temp)
+static char	*extract_key(char *arg)
 {
-    if (!ft_strncmp((const char *)((*env)->current_key), (const char *)(value_delete), ft_strlen((*env)->current_key)))
-    {
-        free((*env)->current_key);
-        free((*env)->current_value);
-        temp = (*env);
-        if (count_forward == 0)
-        {
-            (*env) = (*env)->next;
-            (*env)->previous = NULL;
-        }
-        else
-        {
-            if ((*env)->next == NULL)
-            {
-                (*env) = (*env)->previous;
-                (*env)->next = NULL;
-            }
-            else
-            {
-                (*env)->previous->next = (*env)->next;
-                (*env)->next->previous = (*env)->previous;
-                (*env) = (*env)->previous;
-            }
-            if (count_forward == 1)
-                (*env)->previous = NULL;
-        }
-        free(temp);
-        return (1);
-    }
-    return (0);
+	char	*eq;
+	size_t	len;
+
+	eq = ft_strchr(arg, '=');
+	if (!eq)
+		return (NULL);
+	len = eq - arg;
+	return (ft_substr(arg, 0, len));
 }
 
-void	builtin_unset(t_env **env, char *value_delete)
+static char	*extract_value(char *arg)
 {
-    t_env   *temp;
-    int     count_forward;
+	char	*eq;
 
-    temp = NULL;
-    count_forward = 0;
-    while ((*env)->previous != NULL)
-        (*env) = (*env)->previous;
-    
-    while ((*env)->next != NULL)
-    {
-        if (builtin_unset_test_equal(env, value_delete, count_forward, temp))
-            return ;
-        (*env) = (*env)->next;
-        count_forward++;
-    }
-    builtin_unset_test_equal(env, value_delete, count_forward, temp);
+	eq = ft_strchr(arg, '=');
+	if (!eq)
+		return (NULL);
+	return (ft_strdup(eq + 1));
+}
+
+t_env	**builtin_export(t_env **env, t_cmd **args)
+{
+	int		i;
+	char	*key;
+	char	*value;
+
+	i = 1;
+	while ((*args)->args[i])
+	{
+		if (ft_strchr((*args)->args[i], '='))
+		{
+			key = extract_key((*args)->args[i]);
+			value = extract_value((*args)->args[i]);
+				printf("make the export : %s=%s\n", key, value);
+
+			if (key && value)
+				env = add_env(env, key, value);
+			free(key);
+			free(value);
+
+		}
+		i++;
+	}
+	return (env);
 }

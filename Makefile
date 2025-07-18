@@ -1,54 +1,64 @@
-NAME 	= minishell
-CC		= gcc
-CFLAGS	= -Wall -Werror -Wextra
+NAME = minishell
+CC = gcc
+CFLAGS = -Wall -Werror -Wextra -g
 
 SRC_PATH = ./src/
-OBJ_PATH = obj/
+OBJ_PATH = ./obj/
+SRC = readline.c \
+      read_line_utils.c \
+      signals.c \
+      builtins.c \
+      env.c \
+      expand.c \
+      token_word.c \
+      parse_line.c \
+      parse_line_utils.c \
+      parse_line_utils2.c \
+      exec.c \
+      error_handling.c \
+      builtins_utils.c \
+      builtins_utils2.c \
+      builtins_utils3.c \
+      env_utils.c \
+      error_handling_utils.c \
+      exec_utils.c \
+      exec_utils2.c \
+      exec_utils3.c \
+      exec_utils4.c \
+      expand_utils.c \
+      expand_utils2.c \
+      lexer.c \
+      lexer_utils.c
 
-SRC		= readline.c \
-		  signals.c \
-		  builtins.c \
-		  env.c \
-		  expand.c \
-		  token_word.c \
-		  parse_line.c \
-		  exec.c 
+SRCS = $(addprefix $(SRC_PATH), $(SRC))
+OBJS = $(addprefix $(OBJ_PATH), $(SRC:.c=.o))
 
-
-SRCS		= $(addprefix $(SRC_PATH), $(SRC))
-OBJ			= $(SRC:.c=.o)
-OBJS		= $(addprefix $(OBJ_PATH), $(OBJ))
-INCS		= -I ./inc/
-
-
+INCS = -I ./inc/ -I ./libft/
 LIBDIR = ./libft/
-LIBFT = ./libft/libft.a
+LIBFT = $(LIBDIR)libft.a
 
-
-RM 			:= rm -rf
-MAKEFLAGS	+= --no-print-directory
-
-all: compile_libft make_obj_dir $(NAME) 
-
-$(OBJ_PATH)%.o: $(SRC_PATH)%.c 
-		$(CC) $(CFLAGS) -I$(LIBDIR) -c $< -o $@ $(INCS) -g
-
-make_obj_dir:
-		mkdir obj -p
-
-$(NAME): $(OBJ_PATH) $(OBJS)
-		$(CC) $(CFLAGS) $(OBJS) -o $(NAME) $(LIBFT) -lreadline
-
-compile_libft:
-		$(MAKE) -C $(LIBDIR)
-
-clean:
-	$(RM) obj
-
-fclean: clean
-	$(MAKE) -C $(LIBDIR) fclean
-re: fclean
-	$(MAKE) -C $(LIBDIR) fclean
-	$(MAKE) all
+RM = rm -rf
 
 .PHONY: all clean fclean re bonus
+
+all: $(LIBFT) $(NAME)
+
+$(OBJ_PATH)%.o: $(SRC_PATH)%.c
+	@mkdir -p $(OBJ_PATH)
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+
+$(NAME): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $(NAME) $(LIBFT) -lreadline
+
+$(LIBFT):
+	$(MAKE) -C $(LIBDIR)
+
+clean:
+	$(RM) $(OBJ_PATH)
+	$(MAKE) -C $(LIBDIR) clean
+
+fclean: clean
+	$(RM) $(NAME)
+	$(MAKE) -C $(LIBDIR) fclean
+
+re: fclean all

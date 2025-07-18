@@ -5,71 +5,133 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: ael-fari <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/02 16:03:56 by ael-fari          #+#    #+#             */
-/*   Updated: 2025/05/02 16:04:13 by ael-fari         ###   ########.fr       */
+/*   Created: 2025/07/02 21:12:27 by ael-fari          #+#    #+#             */
+/*   Updated: 2025/07/02 21:12:29 by ael-fari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../inc/minishell.h"
 
-t_lexer	*handle_line(char *line)
+static t_cmd	*new_cmd(void)
 {
-    int     count;
-    char    *word;
-    t_lexer *result;
+	t_cmd	*cmd;
 
-    result = NULL;
-    count = 0;
-    while (line[count])
-    {
-        while (line[count] == ' ')
-            count++;
-        if (line[count])
-            word = cpy_word(line, &count);
-        if (!result)
-        {
-            result = malloc(sizeof(t_lexer));
-            if (!result)
-                return (NULL);
-            result->previous = NULL;
-        }
-        else
-        {
-            result->next = malloc(sizeof(t_lexer));
-            if (!result->next)
-                return (NULL);
-            result->next->previous = result;
-            result = result->next;
-        }
-        result->next = NULL;
-        result->content = word;
-    }
-    return (result);
+	cmd = malloc(sizeof(t_cmd));
+	if (!cmd)
+		return (NULL);
+	cmd->args = NULL;
+	cmd->infile = NULL;
+	cmd->outfile = NULL;
+	cmd->append = 0;
+	cmd->heredoc = 0;
+	cmd->heredoc_fd = -1;
+	cmd->heredoc_delimiter = NULL;
+	cmd->next = NULL;
+	cmd->previous = NULL;
+	return (cmd);
 }
-char	*cpy_word(char *line, int *count)
-{
-    char    *result;
-    int     size_word;
-    int     count2;
 
-    count2 = -1;
-    size_word = 0;
-    if (line[*count] == '\'' || line[*count] == '\"')
-    {
-        while (line[*count + size_word] && (line[*count + size_word] != '\'' || line[*count + size_word] != '\"'))
-        {
-            size_word++;
-            if (line[*count + size_word] && (line[*count + size_word] == '\'' || line[*count + size_word] == '\"'))
-                size_word++;
-        }
-    }
-    else
-        while (line[*count + size_word] && line[*count + size_word] != ' ')
-            size_word++;
-    result = ft_calloc(sizeof(char), size_word + 1);
-    if (!result)
-        return (NULL);
-    while (++count2 < size_word)
-        result[count2] = line[(*count)++];
-    return (result);
+static void	add_cmd_back(t_cmd **head, t_cmd *new_node)
+{
+	t_cmd	*tmp;
+
+	if (!head || !new_node)
+		return ;
+	if (!*head)
+	{
+		*head = new_node;
+		return ;
+	}
+	tmp = *head;
+	while (tmp->next)
+		tmp = tmp->next;
+	tmp->next = new_node;
+	new_node->previous = tmp;
+}
+
+static void	apply_redirect(t_cmd *cmd, t_ast *node)
+{
+	if (!cmd || !node || node->type != NODE_REDIRECT)
+		return ;
+	if (node->redirect.redirect_type == GREAT)
+	{
+		free(cmd->outfile);
+		cmd->outfile = strdup(node->redirect.filename);
+		cmd->append = 0;
+	}
+	else if (node->redirect.redirect_type == D_GREAT)
+	{
+		free(cmd->outfile);
+		cmd->outfile = strdup(node->redirect.filename);
+		cmd->append = 1;
+	}
+	else if (node->redirect.redirect_type == LESS)
+	{
+		free(cmd->infile);
+		cmd->infile = strdup(node->redirect.filename);
+	}
+	else if (node->redirect.redirect_type == D_LESS)
+	{
+		cmd->heredoc = 1;
+		free(cmd->heredoc_delimiter);
+		cmd->heredoc_delimiter = strdup(node->redirect.filename);
+	}
+}
+
+static int	fill_cmd(t_ast *node, t_cmd *cmd)
+{
+	int	i;
+	int	len;
+
+	if (!node || !cmd)
+		return (0);
+	if (node->type == NODE_COMMAND)
+	{
+		len = 0;
+		while (node->cmd.args && node->cmd.args[len])
+			len++;
+		cmd->args = malloc(sizeof(char *) * (len + 1));
+		if (!cmd->args)
+			return (0);
+		i = -1;
+		while (++i > -2 && i < len)
+			cmd->args[i] = strdup(node->cmd.args[i]);
+		cmd->args[len] = NULL;
+		return (1);
+	}
+	else if (node->type == NODE_REDIRECT)
+	{
+		apply_redirect(cmd, node);
+		return (fill_cmd(node->redirect.command, cmd));
+	}
+	return (1);
+}
+
+t_cmd	*ast_to_cmds(t_ast *node)
+{
+	t_cmd	*left_cmd;
+	t_cmd	*right_cmd;
+	t_cmd	*cmd;
+
+	if (!node)
+		return (NULL);
+	if (node->type == NODE_PIPE)
+	{
+		left_cmd = ast_to_cmds(node->pipe.left);
+		right_cmd = ast_to_cmds(node->pipe.right);
+		add_cmd_back(&left_cmd, right_cmd);
+		return (left_cmd);
+	}
+	else
+	{
+		cmd = new_cmd();
+		if (!cmd)
+			return (NULL);
+		if (!fill_cmd(node, cmd))
+		{
+			free_cmd(cmd);
+			return (NULL);
+		}
+		return (cmd);
+	}
 }
