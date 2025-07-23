@@ -129,6 +129,7 @@ typedef struct s_cmd
 	int					append;
 	int					heredoc;
 	int					heredoc_fd;
+	int					if_exec;
 	char				*heredoc_delimiter;
 	struct s_cmd		*next;
 	struct s_cmd		*previous;
@@ -154,6 +155,11 @@ void					free_env(t_env **env);
 
 // signals
 void					handle_signal_interrupt(int sig);
+void					setup_signals_child(void);
+void					setup_signals_shell(void);
+void					sigint_handler(int signum);
+void					setup_signals_parent(void);
+int						handle_eof_signal(char *line);
 
 // parsing
 t_lexer					*handle_line(char *line);
@@ -174,6 +180,8 @@ int						builtin_cd(char **args, t_env **env);
 void					builtin_exit(t_cmd *cmd);
 
 // exec
+char					**get_path(char **envp);
+char					*get_abs_path(char *cmd, char **all_path);
 int						if_is_builtin(t_cmd *cmd);
 t_env					**execute_builtin(t_cmd *cmd, t_env **envp);
 
@@ -204,7 +212,6 @@ void					make_exec_pipeline(t_cmd *cmd, t_env **env);
 
 void					*push_back_list(char *content, t_char_list **list);
 char					**from_chain_list_to_2star_char(t_char_list **list);
-void					free_char_list(t_char_list **list);
 
 char					*expand_string(const char *input, t_env **env,
 							int exit_status);

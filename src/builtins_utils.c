@@ -103,7 +103,7 @@ void	builtin_unset(t_env **env, char **args)
 		{
 			write(2, "unset: invalid identifier\n", 26);
 			i++;
-			continue;
+			continue ;
 		}
 		remove_key_from_env(env, args[i]);
 		i++;

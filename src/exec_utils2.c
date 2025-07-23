@@ -40,22 +40,42 @@ static int	make_scan_and_single_builtin_execute_pipeline(t_cmd *cmds,
 	return (0);
 }
 
+t_cmd	*check_if_last_command_is_builtin(t_cmd *cmds)
+{
+	t_cmd	*cmd;
+
+	cmd = cmds;
+	while (cmd)
+	{
+		if (if_is_builtin(cmd) && cmd->next == NULL)
+		{
+			cmd->if_exec = 1;
+			return (cmd);
+		}
+		cmd = cmd->next;
+	}
+	return (NULL);
+}
+
 void	make_exec_pipeline(t_cmd *cmd, t_env **env)
 {
 	char	**envp;
-	char	*full_path;
+	char	**path;
+	char	*abs_path;
 
 	if (if_is_builtin(cmd))
 	{
 		execute_builtin(cmd, env);
-		exit(0);
+		exit(127);
 	}
 	else
 	{
 		envp = convert_l_env_to_char_env(env);
-		full_path = add_path_build(cmd->args[0], "/usr/bin/");
-		execve(full_path, cmd->args, envp);
-		print_command_not_found(cmd->args[0]);
+		path = get_path(envp);
+		abs_path = get_abs_path(cmd->args[0], path);
+		execve(abs_path, cmd->args, envp);
+		if (!abs_path)
+			print_command_not_found(cmd->args[0]);
 		exit(127);
 	}
 }
@@ -87,31 +107,24 @@ void	make_enter_file_exec_pipeline(t_cmd *cmd, int *prev_fd)
 	}
 }
 
-void	make_out_file_exec_pipeline(t_cmd *cmd, int *fd_0, int *fd_1)
+void	handle_exit_status(void)
 {
-	int	out_fd;
-	int	flags;
+	int	status;
+	int	sig_num;
 
-	if (cmd->outfile)
+	while (wait(&status) > 0)
 	{
-		if (cmd->append)
-			flags = O_WRONLY | O_CREAT | O_APPEND;
-		else
-			flags = O_WRONLY | O_CREAT | O_TRUNC;
-		out_fd = open(cmd->outfile, flags, 0644);
-		if (out_fd == -1)
+		if (WIFSIGNALED(status))
 		{
-			perror(cmd->outfile);
-			exit(127);
+			sig_num = WTERMSIG(status);
+			if (sig_num == SIGQUIT)
+				write(1, "Quit (core dumped)\n", 20);
+			else if (sig_num == SIGINT)
+				write(1, "\n", 1);
+			g_exit_status = 128 + sig_num;
 		}
-		dup2(out_fd, STDOUT_FILENO);
-		close(out_fd);
-	}
-	else if (cmd->next)
-	{
-		close(*fd_0);
-		dup2(*fd_1, STDOUT_FILENO);
-		close(*fd_1);
+		else if (WIFEXITED(status))
+			g_exit_status = WEXITSTATUS(status);
 	}
 }
 
@@ -133,10 +146,13 @@ int	execute_pipeline(t_cmd *cmds, t_env **env)
 		if (sig.pid == -1)
 			return (perror("fork"), 0);
 		if (sig.pid == 0)
+		{
+			setup_signals_child();
 			child_process(cmd, env, prev_fd, fd);
+		}
 		parent_process(&prev_fd, fd, cmd);
 		cmd = cmd->next;
 	}
-	wait_all(&sig.exit_status);
+	handle_exit_status();
 	return (g_exit_status);
 }

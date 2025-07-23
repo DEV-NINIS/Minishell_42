@@ -25,6 +25,7 @@ SRC = readline.c \
       exec_utils2.c \
       exec_utils3.c \
       exec_utils4.c \
+      exec_utils5.c \
       expand_utils.c \
       expand_utils2.c \
       lexer.c \

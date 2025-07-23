@@ -12,25 +12,47 @@
 
 #include "../inc/minishell.h"
 
-char	*add_path_build(char *word_command, char *path_content)
+char	**get_path(char **envp)
 {
-	char	*temp;
-	int		count;
-	int		count2;
+	char	**path;
+	int		i;
 
-	count = -1;
-	count2 = -1;
-	temp = ft_calloc(sizeof(char), ft_strlen(word_command) + 13);
-	if (!temp)
-		return (NULL);
-	while (path_content[++count])
-		temp[count] = path_content[count];
-	while (word_command[++count2])
+	i = 0;
+	while (envp[i])
 	{
-		temp[count] = word_command[count2];
-		count++;
+		if (ft_strnstr(envp[i], "PATH", 4))
+		{
+			path = ft_split(envp[i] + 5, ':');
+			return (path);
+		}
+		i++;
 	}
-	return (temp);
+	return (NULL);
+}
+
+char	*get_abs_path(char *cmd, char **all_path)
+{
+	char	*tmp;
+	char	*command;
+	int		i;
+
+	i = 0;
+	if (all_path == NULL || !cmd)
+		return (NULL);
+	if (access(cmd, F_OK) == 0)
+		return (cmd);
+	while (all_path[i])
+	{
+		tmp = ft_strjoin(all_path[i], "/");
+		command = ft_strjoin(tmp, cmd);
+		free(tmp);
+		if (access(command, F_OK) == 0)
+			return (free_string_array(all_path), (command));
+		free(command);
+		i++;
+	}
+	free_string_array(all_path);
+	return (NULL);
 }
 
 char	*get_my_line_here_doc(void)
@@ -83,12 +105,4 @@ void	*push_back_list(char *content, t_char_list **list)
 		temp->next = NULL;
 	}
 	return (NULL);
-}
-
-void	free_char_list(t_char_list **list)
-{
-	while ((**list).previous != NULL)
-		(*list) = (**list).previous;
-	while ((**list).next != NULL)
-		free((**list).content);
 }

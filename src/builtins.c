@@ -84,13 +84,10 @@ t_env	**builtin_export(t_env **env, t_cmd **args)
 		{
 			key = extract_key((*args)->args[i]);
 			value = extract_value((*args)->args[i]);
-				printf("make the export : %s=%s\n", key, value);
-
 			if (key && value)
 				env = add_env(env, key, value);
 			free(key);
 			free(value);
-
 		}
 		i++;
 	}

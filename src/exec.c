@@ -62,36 +62,11 @@ void	make_heredoc_in_out_file_utils(t_cmd *cmd, t_sig *sig)
 	}
 }
 
-int	make_exec_builtins_simple_command(t_cmd *cmd, t_env **envp,
-		t_sig *sig)
-{
-	if (if_is_builtin(cmd))
-	{
-		if (modifies_env(cmd))
-		{
-			make_heredoc_in_out_file(cmd, sig);
-			execute_builtin(cmd, envp);
-		}
-		else
-		{
-			sig->pid = fork();
-			if (sig->pid == 0)
-			{
-				make_heredoc_in_out_file(cmd, sig);
-				execute_builtin(cmd, envp);
-				exit(SUCCESS_FREE);
-			}
-			waitpid(sig->pid, &sig->exit_status, 0);
-		}
-		return (1);
-	}
-	return (0);
-}
-
 static void	exec_child_process(t_cmd *cmd, t_env **envp, t_sig *sig)
 {
 	char	**en;
-	char	*full_path;
+	char	**path;
+	char	*abs_path;
 
 	make_heredoc_in_out_file(cmd, sig);
 	en = convert_l_env_to_char_env(envp);
@@ -102,33 +77,68 @@ static void	exec_child_process(t_cmd *cmd, t_env **envp, t_sig *sig)
 		else
 		{
 			perror("minishell");
-			exit(126);
+			exit(127);
 		}
 	}
-	full_path = add_path_build(cmd->args[0], "/usr/bin/");
-	if (access(full_path, X_OK) == 0)
-		execve(full_path, cmd->args, en);
-	free(full_path);
-	handle_execve_error(cmd);
-	exit(EXIT_FAILURE);
+	path = get_path(en);
+	abs_path = get_abs_path(cmd->args[0], path);
+	if (!abs_path)
+	{
+		print_command_not_found(cmd->args[0]);
+		exit(127);
+	}
+	execve(abs_path, cmd->args, en);
+}
+
+int	exec_simple_child(t_cmd *cmd, t_env **envp, t_sig *sig)
+{
+	if (sig->pid == -1)
+		return (0);
+	if (sig->pid == 0)
+	{
+		setup_signals_child();
+		exec_child_process(cmd, envp, sig);
+	}
+	return (1);
 }
 
 int	execute_simple_command(t_cmd *cmd, t_env **envp)
 {
 	t_sig	sig;
+	int		sig_num;
+	char	**en;
+	char	**path;
+	char	*abs_path;
 
 	if (make_exec_builtins_simple_command(cmd, envp, &sig))
-	{
-		g_exit_status = 0;
 		return (g_exit_status);
+	en = convert_l_env_to_char_env(envp);
+	path = get_path(en);
+	abs_path = get_abs_path(cmd->args[0], path);
+	if (!abs_path)
+	{
+		print_command_not_found(cmd->args[0]);
+		free_string_array(en);
+		free(abs_path);
+		return (127);
 	}
 	sig.pid = fork();
-	if (sig.pid == -1)
+	if (!exec_simple_child(cmd, envp, &sig))
 		return (0);
-	if (sig.pid == 0)
-		exec_child_process(cmd, envp, &sig);
 	else
+	{
+		signal(SIGINT, SIG_IGN);
 		waitpid(sig.pid, &sig.exit_status, 0);
+		if (WIFSIGNALED(sig.exit_status))
+		{
+			sig_num = WTERMSIG(sig.exit_status);
+			if (sig_num == SIGQUIT)
+				write(1, "Quit (core dumped)\n", 20);
+			else if (sig_num == SIGINT)
+				write(1, "\n", 1);
+		}
+		setup_signals_parent();
+	}
 	g_exit_status = get_exit_code(sig.exit_status);
 	return (g_exit_status);
 }

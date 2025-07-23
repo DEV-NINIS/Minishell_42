@@ -92,6 +92,8 @@ static void	minishell_loop(t_env **env, int *if_p)
 			break ;
 		if (is_input_special(rl))
 			continue ;
+		if (!handle_eof_signal(rl))
+			break ;
 		lexer = start_lexer(rl);
 		head2 = lexer;
 		if (!lexer)
@@ -116,6 +118,7 @@ int	main(int argc, char **argv, char **env)
 		env_result = init_env_list(env);
 	else
 		env_result = init_default_env();
+	setup_signals_shell();
 	signal(SIGINT, handle_signal_interrupt);
 	signal(SIGQUIT, SIG_IGN);
 	minishell_loop(&env_result, &if_first_pipe_command);
