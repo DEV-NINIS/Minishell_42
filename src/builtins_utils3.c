@@ -28,7 +28,7 @@ static int	ft_is_numeric(char *str)
 	return (1);
 }
 
-void	builtin_exit(t_cmd *cmd)
+int	builtin_exit(t_cmd *cmd)
 {
 	int	code;
 
@@ -39,13 +39,13 @@ void	builtin_exit(t_cmd *cmd)
 		{
 			fprintf(stderr, "minishell: exit: %s: numeric argument required\n",
 				cmd->args[1]);
-			exit(255);
+			return (1);
 		}
 		if (cmd->args[2])
 		{
 			fprintf(stderr, "minishell: exit: too many arguments\n");
 			g_exit_status = 1;
-			return ;
+			return (1);
 		}
 		code = atoi(cmd->args[1]);
 		exit(code % 256);

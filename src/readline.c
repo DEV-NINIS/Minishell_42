@@ -53,7 +53,21 @@ static int	execute_if_valid(t_cmd *cmds, t_env **env, t_lexer *lexer,
 	return (1);
 }
 
-static void	handle_command_line(char *rl, t_lexer *lexer, t_env **env,
+int			check_exit(t_cmd *cmds)
+{
+	t_cmd	*cmd;
+
+	cmd = cmds;
+	while (cmd)
+	{
+		if (!ft_strcmp(cmd->args[0], "exit"))
+			return (1);
+		cmd = cmd->next;
+	}
+	return (0);
+}
+
+static int	handle_command_line(char *rl, t_lexer *lexer, t_env **env,
 		int *if_p)
 {
 	t_ast	*parsed;
@@ -71,12 +85,20 @@ static void	handle_command_line(char *rl, t_lexer *lexer, t_env **env,
 		free(rl);
 		free_lexer(head, 0);
 		free_ast(head_ast);
-		return ;
+		return (0);
 	}
 	free_ast(parsed);
+	if (check_exit(cmds))
+	{
+		free_cmd(cmds);
+		free(rl);
+		free_lexer(head, 0);
+		return (1);
+	}
 	execute_if_valid(cmds, env, head, if_p);
 	free_cmd(cmds);
 	free(rl);
+	return (0);
 }
 
 static void	minishell_loop(t_env **env, int *if_p)
@@ -101,7 +123,8 @@ static void	minishell_loop(t_env **env, int *if_p)
 			free(rl);
 			continue ;
 		}
-		handle_command_line(rl, head2, env, if_p);
+		if (handle_command_line(rl, head2, env, if_p))
+			break;
 	}
 }
 

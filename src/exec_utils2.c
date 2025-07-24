@@ -40,46 +40,6 @@ static int	make_scan_and_single_builtin_execute_pipeline(t_cmd *cmds,
 	return (0);
 }
 
-t_cmd	*check_if_last_command_is_builtin(t_cmd *cmds)
-{
-	t_cmd	*cmd;
-
-	cmd = cmds;
-	while (cmd)
-	{
-		if (if_is_builtin(cmd) && cmd->next == NULL)
-		{
-			cmd->if_exec = 1;
-			return (cmd);
-		}
-		cmd = cmd->next;
-	}
-	return (NULL);
-}
-
-void	make_exec_pipeline(t_cmd *cmd, t_env **env)
-{
-	char	**envp;
-	char	**path;
-	char	*abs_path;
-
-	if (if_is_builtin(cmd))
-	{
-		execute_builtin(cmd, env);
-		exit(127);
-	}
-	else
-	{
-		envp = convert_l_env_to_char_env(env);
-		path = get_path(envp);
-		abs_path = get_abs_path(cmd->args[0], path);
-		execve(abs_path, cmd->args, envp);
-		if (!abs_path)
-			print_command_not_found(cmd->args[0]);
-		exit(127);
-	}
-}
-
 void	make_enter_file_exec_pipeline(t_cmd *cmd, int *prev_fd)
 {
 	int	in_fd;
@@ -128,6 +88,27 @@ void	handle_exit_status(void)
 	}
 }
 
+int	check_if_command_valid(t_cmd *cmd, t_env **env)
+{
+	char	*abs_path;
+	char	**path;
+	char	**envp;
+
+	envp = convert_l_env_to_char_env(env);
+	path = get_path(envp);
+	abs_path = get_abs_path(cmd->args[0], path);
+	if (!abs_path)
+	{
+		free_string_array(envp);
+		free(abs_path);
+		print_command_not_found(cmd->args[0]);
+		return (0);
+	}
+	free_string_array(envp);
+	free(abs_path);
+	return (1);
+}
+
 int	execute_pipeline(t_cmd *cmds, t_env **env)
 {
 	t_cmd	*cmd;
@@ -142,6 +123,12 @@ int	execute_pipeline(t_cmd *cmds, t_env **env)
 	{
 		if (cmd->next && pipe(fd) == -1)
 			return (perror("pipe"), 0);
+		if (!check_if_command_valid(cmd, env))
+		{
+			parent_process(&prev_fd, fd, cmd);
+			cmd = cmd->next;
+			continue ;
+		}
 		sig.pid = fork();
 		if (sig.pid == -1)
 			return (perror("fork"), 0);

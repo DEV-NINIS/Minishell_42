@@ -36,8 +36,6 @@ t_env	**execute_builtin(t_cmd *cmd, t_env **envp)
 		(builtin_echo(cmd->args));
 	else if (!ft_strncmp(cmd->args[0], "cd", ft_strlen(cmd->args[0])))
 		(builtin_cd(cmd->args, envp));
-	else if (!ft_strncmp(cmd->args[0], "exit", ft_strlen(cmd->args[0])))
-		(builtin_exit(cmd));
 	else
 		printf("zsh command not found\n");
 	return (envp);

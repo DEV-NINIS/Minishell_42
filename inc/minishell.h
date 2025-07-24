@@ -172,12 +172,11 @@ void					builtin_env(t_env **env);
 int						is_echo_n_option(const char *arg);
 t_env					**builtin_export(t_env **env, t_cmd **args);
 void					builtin_unset(t_env **env, char **args);
-int						builtin_echo(char **args);
+int						builtin_echo(char **argg);
 int						builtin_unset_test_equal(t_env **env,
 							char *value_delete, int count_forward, t_env *temp);
 int						modifies_env(t_cmd *cmd);
 int						builtin_cd(char **args, t_env **env);
-void					builtin_exit(t_cmd *cmd);
 
 // exec
 char					**get_path(char **envp);
@@ -208,7 +207,7 @@ void					child_process(t_cmd *cmd, t_env **env, int prev_fd,
 							int fd[2]);
 void					parent_process(int *prev_fd, int fd[2], t_cmd *cmd);
 void					wait_all(int *exit_status);
-void					make_exec_pipeline(t_cmd *cmd, t_env **env);
+void					make_exec_pipeline(t_cmd *cmd, char *abs_path, char *envp);
 
 void					*push_back_list(char *content, t_char_list **list);
 char					**from_chain_list_to_2star_char(t_char_list **list);

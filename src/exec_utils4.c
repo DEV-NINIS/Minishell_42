@@ -42,11 +42,20 @@ void	make_heredoc_in_out_file(t_cmd *cmd, t_sig *sig)
 
 void	child_process(t_cmd *cmd, t_env **env, int prev_fd, int fd[2])
 {
+	char	*abs_path;
+	char	**path;
+	char	**envp;
+	
 	if (prev_fd != -1)
 		dup2(prev_fd, STDIN_FILENO);
 	make_enter_file_exec_pipeline(cmd, &prev_fd);
 	make_out_file_exec_pipeline(cmd, &fd[0], &fd[1]);
-	make_exec_pipeline(cmd, env);
+
+	envp = convert_l_env_to_char_env(env);
+	path = get_path(envp);
+	abs_path = get_abs_path(cmd->args[0], path);
+	execve(abs_path, cmd->args, envp);
+	exit(127);
 }
 
 void	parent_process(int *prev_fd, int fd[2], t_cmd *cmd)
