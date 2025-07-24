@@ -122,6 +122,8 @@ int	execute_simple_command(t_cmd *cmd, t_env **envp)
 		free(abs_path);
 		return (127);
 	}
+	free_string_array(en);
+	free(abs_path);
 	sig.pid = fork();
 	if (!exec_simple_child(cmd, envp, &sig))
 		return (0);
