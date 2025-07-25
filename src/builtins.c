@@ -22,6 +22,8 @@ void	builtin_env(t_env **env)
 		(*env) = (*env)->next;
 	}
 	printf("%s=%s\n", (*env)->current_key, (*env)->current_value);
+	while ((*env)->previous != NULL)
+		(*env) = (*env)->previous;
 }
 
 int	builtin_cd(char **args, t_env **env)

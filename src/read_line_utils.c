@@ -42,11 +42,6 @@ int	is_input_special(char *rl)
 {
 	if (rl[0] != '\0')
 		add_history(rl);
-	if (ft_strcmp(rl, "exit") == 0)
-	{
-		free(rl);
-		exit(127);
-	}
 	if (is_empty_line(rl))
 	{
 		free(rl);

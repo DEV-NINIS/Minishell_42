@@ -94,10 +94,12 @@ int	check_if_command_valid(t_cmd *cmd, t_env **env)
 	char	**path;
 	char	**envp;
 
+	if (if_is_builtin(cmd) && ft_strncmp(cmd->args[0], "echo", ft_strlen(cmd->args[0])))
+		return (execute_builtin(cmd, env), 0);
 	envp = convert_l_env_to_char_env(env);
 	path = get_path(envp);
 	abs_path = get_abs_path(cmd->args[0], path);
-	if (!abs_path)
+	if (!abs_path && !if_is_builtin(cmd))
 	{
 		free_string_array(envp);
 		free(abs_path);

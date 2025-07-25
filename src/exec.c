@@ -102,16 +102,12 @@ int	exec_simple_child(t_cmd *cmd, t_env **envp, t_sig *sig)
 	return (1);
 }
 
-int	execute_simple_command(t_cmd *cmd, t_env **envp)
+int	make_cheking_command(t_cmd *cmd, t_env **envp)
 {
-	t_sig	sig;
-	int		sig_num;
 	char	**en;
 	char	**path;
 	char	*abs_path;
 
-	if (make_exec_builtins_simple_command(cmd, envp, &sig))
-		return (g_exit_status);
 	en = convert_l_env_to_char_env(envp);
 	path = get_path(en);
 	abs_path = get_abs_path(cmd->args[0], path);
@@ -120,10 +116,22 @@ int	execute_simple_command(t_cmd *cmd, t_env **envp)
 		print_command_not_found(cmd->args[0]);
 		free_string_array(en);
 		free(abs_path);
-		return (127);
+		return (1);
 	}
 	free_string_array(en);
 	free(abs_path);
+	return (0);
+}
+
+int	execute_simple_command(t_cmd *cmd, t_env **envp)
+{
+	t_sig	sig;
+	int		sig_num;
+
+	if (make_exec_builtins_simple_command(cmd, envp, &sig))
+		return (g_exit_status);
+	if (make_cheking_command(cmd, envp))
+		return (127);
 	sig.pid = fork();
 	if (!exec_simple_child(cmd, envp, &sig))
 		return (0);
@@ -141,6 +149,5 @@ int	execute_simple_command(t_cmd *cmd, t_env **envp)
 		}
 		setup_signals_parent();
 	}
-	g_exit_status = get_exit_code(sig.exit_status);
-	return (g_exit_status);
+	return (get_exit_code(sig.exit_status));
 }

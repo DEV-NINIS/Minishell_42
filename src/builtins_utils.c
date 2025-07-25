@@ -106,6 +106,8 @@ void	builtin_unset(t_env **env, char **args)
 			continue ;
 		}
 		remove_key_from_env(env, args[i]);
+		while ((*env)->previous != NULL)
+			(*env) = (*env)->previous;
 		i++;
 	}
 }
