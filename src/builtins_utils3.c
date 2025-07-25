@@ -32,23 +32,21 @@ int	builtin_exit(t_cmd *cmd)
 {
 	int	code;
 
-	write(STDERR_FILENO, "exit\n", 5);
 	if (cmd->args[1])
 	{
 		if (!ft_is_numeric(cmd->args[1]))
 		{
-			fprintf(stderr, "minishell: exit: %s: numeric argument required\n",
-				cmd->args[1]);
 			return (1);
 		}
 		if (cmd->args[2])
 		{
 			fprintf(stderr, "minishell: exit: too many arguments\n");
 			g_exit_status = 1;
-			return (1);
+			return (-100);
 		}
 		code = atoi(cmd->args[1]);
-		exit(code % 256);
+		g_exit_status = code % 256;
 	}
-	exit(g_exit_status);
+	write(STDERR_FILENO, "exit\n", 5);
+	return (g_exit_status);
 }

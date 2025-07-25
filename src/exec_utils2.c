@@ -34,68 +34,23 @@ static int	make_scan_and_single_builtin_execute_pipeline(t_cmd *cmds,
 	if (!cmds->next && if_is_builtin(cmds))
 	{
 		make_heredoc_in_out_file(cmds, sig);
-		execute_builtin(cmds, env);
+		execute_builtin(cmds, env, sig);
 		return (1);
 	}
 	return (0);
 }
 
-void	make_enter_file_exec_pipeline(t_cmd *cmd, int *prev_fd)
-{
-	int	in_fd;
-
-	if (cmd->heredoc)
-	{
-		dup2(cmd->heredoc_fd, STDIN_FILENO);
-		close(cmd->heredoc_fd);
-	}
-	else if (cmd->infile)
-	{
-		in_fd = open(cmd->infile, O_RDONLY);
-		if (in_fd == -1)
-		{
-			perror(cmd->infile);
-			exit(1);
-		}
-		dup2(in_fd, STDIN_FILENO);
-		close(in_fd);
-	}
-	else if (*prev_fd != -1)
-	{
-		dup2(*prev_fd, STDIN_FILENO);
-		close(*prev_fd);
-	}
-}
-
-void	handle_exit_status(void)
-{
-	int	status;
-	int	sig_num;
-
-	while (wait(&status) > 0)
-	{
-		if (WIFSIGNALED(status))
-		{
-			sig_num = WTERMSIG(status);
-			if (sig_num == SIGQUIT)
-				write(1, "Quit (core dumped)\n", 20);
-			else if (sig_num == SIGINT)
-				write(1, "\n", 1);
-			g_exit_status = 128 + sig_num;
-		}
-		else if (WIFEXITED(status))
-			g_exit_status = WEXITSTATUS(status);
-	}
-}
-
-int	check_if_command_valid(t_cmd *cmd, t_env **env)
+int	check_if_command_valid(t_cmd *cmd, t_env **env, t_sig *sig)
 {
 	char	*abs_path;
 	char	**path;
 	char	**envp;
 
-	if (if_is_builtin(cmd) && ft_strncmp(cmd->args[0], "echo", ft_strlen(cmd->args[0])))
-		return (execute_builtin(cmd, env), 0);
+	if (access(cmd->args[0], X_OK) == 0)
+		return (1);
+	if (if_is_builtin(cmd) && ft_strncmp(cmd->args[0], "echo",
+			ft_strlen(cmd->args[0])))
+		return (execute_builtin(cmd, env, sig), 0);
 	envp = convert_l_env_to_char_env(env);
 	path = get_path(envp);
 	abs_path = get_abs_path(cmd->args[0], path);
@@ -109,6 +64,18 @@ int	check_if_command_valid(t_cmd *cmd, t_env **env)
 	free_string_array(envp);
 	free(abs_path);
 	return (1);
+}
+
+void	child_before_pipe(t_cmd **cmd, t_env **env, int prev_fd, int fd[2])
+{
+	setup_signals_child();
+	child_process(*cmd, env, prev_fd, fd);
+}
+
+void	parent_process_and_cmd_next(t_cmd **cmd, int *prev_fd, int fd[2])
+{
+	parent_process(prev_fd, fd, *cmd);
+	(*cmd) = (*cmd)->next;
 }
 
 int	execute_pipeline(t_cmd *cmds, t_env **env)
@@ -125,23 +92,52 @@ int	execute_pipeline(t_cmd *cmds, t_env **env)
 	{
 		if (cmd->next && pipe(fd) == -1)
 			return (perror("pipe"), 0);
-		if (!check_if_command_valid(cmd, env))
+		if (!check_if_command_valid(cmd, env, &sig))
 		{
-			parent_process(&prev_fd, fd, cmd);
-			cmd = cmd->next;
+			parent_process_and_cmd_next(&cmd, &prev_fd, fd);
 			continue ;
 		}
 		sig.pid = fork();
 		if (sig.pid == -1)
 			return (perror("fork"), 0);
 		if (sig.pid == 0)
-		{
-			setup_signals_child();
-			child_process(cmd, env, prev_fd, fd);
-		}
-		parent_process(&prev_fd, fd, cmd);
-		cmd = cmd->next;
+			child_before_pipe(&cmd, env, prev_fd, fd);
+		parent_process_and_cmd_next(&cmd, &prev_fd, fd);
 	}
-	handle_exit_status();
-	return (g_exit_status);
+	return (handle_exit_status());
 }
+
+// int	execute_pipeline(t_cmd *cmds, t_env **env)
+// {
+// 	t_cmd	*cmd;
+// 	t_sig	sig;
+// 	int		fd[2];
+// 	int		prev_fd;
+
+// 	cmd = cmds;
+// 	prev_fd = -1;
+// 	make_scan_and_single_builtin_execute_pipeline(cmds, env, &sig);
+// 	while (cmd)
+// 	{
+// 		if (cmd->next && pipe(fd) == -1)
+// 			return (perror("pipe"), 0);
+// 		if (!check_if_command_valid(cmd, env, &sig))
+// 		{
+// 			parent_process(&prev_fd, fd, cmd);
+// 			cmd = cmd->next;
+// 			continue ;
+// 		}
+// 		sig.pid = fork();
+// 		if (sig.pid == -1)
+// 			return (perror("fork"), 0);
+// 		if (sig.pid == 0)
+// 		{
+// 			setup_signals_child();
+// 			child_process(cmd, env, prev_fd, fd);
+// 		}
+// 		parent_process(&prev_fd, fd, cmd);
+// 		cmd = cmd->next;
+// 	}
+// 	handle_exit_status();
+// 	return (g_exit_status);
+// }

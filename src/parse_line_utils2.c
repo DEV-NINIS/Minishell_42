@@ -79,7 +79,7 @@ t_ast	*handle_redirect(t_lexer **lexer, t_ast *cmd)
 		return (NULL);
 	redir->type = NODE_REDIRECT;
 	redir->redirect.redirect_type = redir_type;
-	redir->redirect.filename = strdup((*lexer)->content);
+	redir->redirect.filename = ft_strdup((*lexer)->content);
 	redir->redirect.command = cmd;
 	advance(lexer);
 	return (redir);

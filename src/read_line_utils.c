@@ -49,3 +49,44 @@ int	is_input_special(char *rl)
 	}
 	return (0);
 }
+
+void	minishell_loop(t_env **env, int *if_p)
+{
+	char	*rl;
+	t_lexer	*lexer;
+	t_lexer	*head2;
+
+	while (1)
+	{
+		rl = readline("minishell$ ");
+		if (!rl)
+			break ;
+		if (is_input_special(rl))
+			continue ;
+		if (!handle_eof_signal(rl))
+			break ;
+		lexer = start_lexer(rl);
+		head2 = lexer;
+		if (!lexer)
+		{
+			free(rl);
+			continue ;
+		}
+		if (handle_command_line(rl, head2, env, if_p))
+			break ;
+	}
+}
+
+int	check_if_heredoc(t_cmd *cmds)
+{
+	t_cmd	*tmp;
+
+	tmp = cmds;
+	while (tmp)
+	{
+		if (tmp->heredoc)
+			return (1);
+		tmp = tmp->next;
+	}
+	return (0);
+}

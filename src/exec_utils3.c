@@ -22,8 +22,14 @@ int	has_final_heredoc(t_cmd *cmds)
 	return (last && last->heredoc);
 }
 
-t_env	**execute_builtin(t_cmd *cmd, t_env **envp)
+t_env	**execute_builtin(t_cmd *cmd, t_env **envp, t_sig *sig)
 {
+	int	fd;
+
+	if (cmd->outfile)
+		fd = sig->sigquit;
+	else
+		fd = 1;
 	if (!ft_strncmp(cmd->args[0], "export", ft_strlen(cmd->args[0])))
 		(builtin_export(envp, &cmd));
 	else if (!ft_strncmp(cmd->args[0], "env", ft_strlen(cmd->args[0])))
@@ -33,7 +39,7 @@ t_env	**execute_builtin(t_cmd *cmd, t_env **envp)
 	else if (!ft_strncmp(cmd->args[0], "unset", ft_strlen(cmd->args[0])))
 		builtin_unset(envp, cmd->args);
 	else if (!ft_strncmp(cmd->args[0], "echo", ft_strlen(cmd->args[0])))
-		(builtin_echo(cmd->args));
+		(builtin_echo(cmd->args, fd));
 	else if (!ft_strncmp(cmd->args[0], "cd", ft_strlen(cmd->args[0])))
 		(builtin_cd(cmd->args, envp));
 	else

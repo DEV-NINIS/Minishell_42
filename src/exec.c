@@ -12,92 +12,53 @@
 
 #include "../inc/minishell.h"
 
-int	create_heredoc_pipe(const char *delimiter)
+int	exec_builtin_child(t_cmd *cmd, t_env **envp, t_sig *sig, t_lexer *lexer)
 {
-	int		pipefd[2];
-	char	*line;
-
-	if (pipe(pipefd) == -1)
+	make_heredoc_in_out_file(cmd, sig);
+	if (if_is_builtin(cmd))
 	{
-		perror("pipe");
-		return (-1);
+		execute_builtin(cmd, envp, sig);
+		free_env(envp);
+		free_cmd(cmd);
+		free_lexer(lexer, 0);
+		return (0);
 	}
-	while (1)
-	{
-		line = readline("> ");
-		if (!line)
-			break ;
-		if (ft_strncmp(line, delimiter, ft_strlen(delimiter)) == 0)
-		{
-			free(line);
-			break ;
-		}
-		write(pipefd[1], line, strlen(line));
-		write(pipefd[1], "\n", 1);
-		free(line);
-	}
-	close(pipefd[1]);
-	return (pipefd[0]);
+	return (1);
 }
 
-void	make_heredoc_in_out_file_utils(t_cmd *cmd, t_sig *sig)
-{
-	int	flags;
-
-	if (cmd->outfile)
-	{
-		flags = O_WRONLY | O_CREAT;
-		if (cmd->append)
-			flags = flags | O_APPEND;
-		else
-			flags = flags | O_TRUNC;
-		sig->sigquit = open(cmd->outfile, flags, 0644);
-		if (sig->sigquit == -1)
-		{
-			printf("ERROR: FILE\n");
-			exit(EXIT_FAILURE);
-		}
-		dup2(sig->sigquit, STDOUT_FILENO);
-		close(sig->sigquit);
-	}
-}
-
-static void	exec_child_process(t_cmd *cmd, t_env **envp, t_sig *sig)
+static int	exec_child_process(t_cmd *cmd, t_env **envp, t_sig *sig,
+		t_lexer *lexer)
 {
 	char	**en;
 	char	**path;
 	char	*abs_path;
 
-	make_heredoc_in_out_file(cmd, sig);
+	if (!exec_builtin_child(cmd, envp, sig, lexer))
+		return (exit(0), 0);
 	en = convert_l_env_to_char_env(envp);
 	if (cmd->args[0][0] == '.' || cmd->args[0][0] == '/')
 	{
 		if (access(cmd->args[0], X_OK) == 0)
 			execve(cmd->args[0], cmd->args, en);
 		else
-		{
-			perror("minishell");
-			exit(127);
-		}
+			return (perror("minishell"), exit(127), 0);
 	}
 	path = get_path(en);
 	abs_path = get_abs_path(cmd->args[0], path);
 	if (!abs_path)
-	{
-		print_command_not_found(cmd->args[0]);
-		exit(127);
-	}
+		return (print_command_not_found(cmd->args[0]), exit(127), 0);
 	execve(abs_path, cmd->args, en);
+	return (0);
 }
 
-int	exec_simple_child(t_cmd *cmd, t_env **envp, t_sig *sig)
+int	exec_simple_child(t_cmd *cmd, t_env **envp, t_sig *sig, t_lexer *lexer)
 {
 	if (sig->pid == -1)
 		return (0);
 	if (sig->pid == 0)
 	{
 		setup_signals_child();
-		exec_child_process(cmd, envp, sig);
+		exec_child_process(cmd, envp, sig, lexer);
 	}
 	return (1);
 }
@@ -108,6 +69,8 @@ int	make_cheking_command(t_cmd *cmd, t_env **envp)
 	char	**path;
 	char	*abs_path;
 
+	if (access(cmd->args[0], X_OK) == 0)
+		return (0);
 	en = convert_l_env_to_char_env(envp);
 	path = get_path(en);
 	abs_path = get_abs_path(cmd->args[0], path);
@@ -123,7 +86,7 @@ int	make_cheking_command(t_cmd *cmd, t_env **envp)
 	return (0);
 }
 
-int	execute_simple_command(t_cmd *cmd, t_env **envp)
+int	execute_simple_command(t_cmd *cmd, t_env **envp, t_lexer *lexer)
 {
 	t_sig	sig;
 	int		sig_num;
@@ -133,7 +96,7 @@ int	execute_simple_command(t_cmd *cmd, t_env **envp)
 	if (make_cheking_command(cmd, envp))
 		return (127);
 	sig.pid = fork();
-	if (!exec_simple_child(cmd, envp, &sig))
+	if (!exec_simple_child(cmd, envp, &sig, lexer))
 		return (0);
 	else
 	{

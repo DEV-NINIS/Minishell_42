@@ -12,11 +12,12 @@
 
 #include "../inc/minishell.h"
 
-int	builtin_echo(char **args)
+int	builtin_echo(char **args, int fd)
 {
 	int	i;
 	int	newline;
 
+	(void)fd;
 	i = 1;
 	newline = 1;
 	while (args[i] && is_echo_n_option(args[i]))

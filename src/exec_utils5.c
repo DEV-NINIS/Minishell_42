@@ -12,13 +12,18 @@
 
 #include "../inc/minishell.h"
 
-int	make_exec_builtins_simple_command(t_cmd *cmd, t_env **envp,
-		t_sig *sig)
+int	check_redir(t_cmd *cmd)
 {
-	if (if_is_builtin(cmd))
+	if (cmd->infile || cmd->outfile)
+		return (0);
+	return (1);
+}
+
+int	make_exec_builtins_simple_command(t_cmd *cmd, t_env **envp, t_sig *sig)
+{
+	if (if_is_builtin(cmd) && check_redir(cmd))
 	{
-		make_heredoc_in_out_file(cmd, sig);
-		execute_builtin(cmd, envp);
+		execute_builtin(cmd, envp, sig);
 		return (1);
 	}
 	return (0);

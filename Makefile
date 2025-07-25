@@ -6,6 +6,7 @@ SRC_PATH = ./src/
 OBJ_PATH = ./obj/
 SRC = readline.c \
       read_line_utils.c \
+      read_line_utils2.c \
       signals.c \
       builtins.c \
       env.c \
@@ -26,6 +27,7 @@ SRC = readline.c \
       exec_utils3.c \
       exec_utils4.c \
       exec_utils5.c \
+      exec_utils6.c \
       expand_utils.c \
       expand_utils2.c \
       lexer.c \

@@ -14,20 +14,6 @@
 
 int			g_exit_status;
 
-int	check_if_heredoc(t_cmd *cmds)
-{
-	t_cmd	*tmp;
-
-	tmp = cmds;
-	while (tmp)
-	{
-		if (tmp->heredoc)
-			return (1);
-		tmp = tmp->next;
-	}
-	return (0);
-}
-
 static int	execute_if_valid(t_cmd *cmds, t_env **env, t_lexer *lexer,
 		int *if_p)
 {
@@ -47,13 +33,13 @@ static int	execute_if_valid(t_cmd *cmds, t_env **env, t_lexer *lexer,
 	}
 	else
 	{
-		g_exit_status = execute_simple_command(cmds, env);
+		g_exit_status = execute_simple_command(cmds, env, lexer);
 		free_lexer(lexer, 0);
 	}
 	return (1);
 }
 
-int			check_exit(t_cmd *cmds)
+int	check_exit(t_cmd *cmds)
 {
 	t_cmd	*cmd;
 
@@ -61,13 +47,37 @@ int			check_exit(t_cmd *cmds)
 	while (cmd)
 	{
 		if (!ft_strcmp(cmd->args[0], "exit"))
-			return (1);
+		{
+			if (builtin_exit(cmds) != -100)
+				return (1);
+		}
 		cmd = cmd->next;
 	}
 	return (0);
 }
 
-static int	handle_command_line(char *rl, t_lexer *lexer, t_env **env,
+static int	handle_command_line_utils(t_cmd *cmds, char *rl, t_lexer *head,
+		t_ast *head_ast)
+{
+	if (!cmds)
+	{
+		free(rl);
+		free_lexer(head, 0);
+		free_ast(head_ast);
+		return (0);
+	}
+	if (check_exit(cmds))
+	{
+		free_cmd(cmds);
+		free(rl);
+		free_ast(head_ast);
+		free_lexer(head, 0);
+		return (1);
+	}
+	return (0);
+}
+
+int	handle_command_line(char *rl, t_lexer *lexer, t_env **env,
 		int *if_p)
 {
 	t_ast	*parsed;
@@ -80,52 +90,13 @@ static int	handle_command_line(char *rl, t_lexer *lexer, t_env **env,
 	parsed = parse(&lexer);
 	head_ast = parsed;
 	cmds = ast_to_cmds(parsed);
-	if (!cmds)
-	{
-		free(rl);
-		free_lexer(head, 0);
-		free_ast(head_ast);
-		return (0);
-	}
+	if (handle_command_line_utils(cmds, rl, head, head_ast))
+		return (free_env(env), exit(g_exit_status), 1);
 	free_ast(parsed);
-	if (check_exit(cmds))
-	{
-		free_cmd(cmds);
-		free(rl);
-		free_lexer(head, 0);
-		return (1);
-	}
 	execute_if_valid(cmds, env, head, if_p);
 	free_cmd(cmds);
 	free(rl);
 	return (0);
-}
-
-static void	minishell_loop(t_env **env, int *if_p)
-{
-	char	*rl;
-	t_lexer	*lexer;
-	t_lexer	*head2;
-
-	while (1)
-	{
-		rl = readline("minishell$ ");
-		if (!rl)
-			break ;
-		if (is_input_special(rl))
-			continue ;
-		if (!handle_eof_signal(rl))
-			break ;
-		lexer = start_lexer(rl);
-		head2 = lexer;
-		if (!lexer)
-		{
-			free(rl);
-			continue ;
-		}
-		if (handle_command_line(rl, head2, env, if_p))
-			break;
-	}
 }
 
 int	main(int argc, char **argv, char **env)

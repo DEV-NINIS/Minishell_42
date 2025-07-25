@@ -133,6 +133,7 @@ typedef struct s_cmd
 	char				*heredoc_delimiter;
 	struct s_cmd		*next;
 	struct s_cmd		*previous;
+	struct s_lexer		*lexer;
 }						t_cmd;
 
 typedef struct s_sig
@@ -142,6 +143,20 @@ typedef struct s_sig
 	int					exit_status;
 	pid_t				pid;
 }						t_sig;
+
+// typedef struct s_link;
+// {
+// 	struct s_cmd 			*cmd;
+// 	struct s_ast 			*ast;
+// 	struct s_expand_values *expand;
+// 	struct s_lexer 			*lexer;
+// }							t_link;
+
+void					minishell_loop(t_env **env, int *if_p);
+int						check_if_heredoc(t_cmd *cmds);
+int						handle_exit_status(void);
+int						handle_command_line(char *rl, t_lexer *lexer,
+							t_env **env, int *if_p);
 
 // init env
 int						ft_strlen_key(char *str_complete_line);
@@ -168,21 +183,25 @@ char					*cpy_word(char *line, int *count);
 char					*get_pwd(void);
 // built in
 void					builtin_pwd(void);
+int						builtin_exit(t_cmd *cmd);
 void					builtin_env(t_env **env);
 int						is_echo_n_option(const char *arg);
 t_env					**builtin_export(t_env **env, t_cmd **args);
 void					builtin_unset(t_env **env, char **args);
-int						builtin_echo(char **argg);
+int						builtin_echo(char **argg, int fd);
 int						builtin_unset_test_equal(t_env **env,
 							char *value_delete, int count_forward, t_env *temp);
 int						modifies_env(t_cmd *cmd);
 int						builtin_cd(char **args, t_env **env);
 
 // exec
+int						check_if_command_valid(t_cmd *cmd, t_env **env,
+							t_sig *sig);
+int						check_redir(t_cmd *cmd);
 char					**get_path(char **envp);
 char					*get_abs_path(char *cmd, char **all_path);
 int						if_is_builtin(t_cmd *cmd);
-t_env					**execute_builtin(t_cmd *cmd, t_env **envp);
+t_env					**execute_builtin(t_cmd *cmd, t_env **envp, t_sig *sig);
 
 char					*add_path_build(char *word_command, char *path_content);
 char					**convert_l_env_to_char_env(t_env **env);
@@ -190,7 +209,8 @@ int						convert_l_env_to_char_env_utils(t_env **env,
 							char **result, int *count);
 
 void					execve_with_path_resolution(t_cmd *cmd, t_env **env);
-int						execute_simple_command(t_cmd *cmd, t_env **envp);
+int						execute_simple_command(t_cmd *cmd, t_env **envp,
+							t_lexer *lexer);
 int						execute_pipeline(t_cmd *cmds, t_env **env);
 void					read_line_heredoc(t_char_list **list, char *arg_end);
 char					*get_my_line_here_doc(void);
@@ -207,7 +227,8 @@ void					child_process(t_cmd *cmd, t_env **env, int prev_fd,
 							int fd[2]);
 void					parent_process(int *prev_fd, int fd[2], t_cmd *cmd);
 void					wait_all(int *exit_status);
-void					make_exec_pipeline(t_cmd *cmd, char *abs_path, char *envp);
+void					make_exec_pipeline(t_cmd *cmd, char *abs_path,
+							char *envp);
 
 void					*push_back_list(char *content, t_char_list **list);
 char					**from_chain_list_to_2star_char(t_char_list **list);
