@@ -58,6 +58,8 @@ void	minishell_loop(t_env **env, int *if_p)
 
 	while (1)
 	{
+		while ((*env)->previous != NULL)
+			(*env) = (*env)->previous;
 		rl = readline("minishell$ ");
 		if (!rl)
 			break ;

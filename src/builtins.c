@@ -37,7 +37,7 @@ int	builtin_cd(char **args, t_env **env)
 		if (!home_dir)
 		{
 			write(2, "cd: HOME not set\n", 18);
-			return (0);
+			return (free(home_dir), 0);
 		}
 		target_dir = home_dir;
 	}
@@ -48,7 +48,7 @@ int	builtin_cd(char **args, t_env **env)
 		write(2, "cd: ", 4);
 		perror(target_dir);
 	}
-	return (1);
+	return (free(home_dir), 1);
 }
 
 static char	*extract_key(char *arg)

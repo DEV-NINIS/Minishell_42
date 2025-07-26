@@ -20,15 +20,23 @@ void	reset_env(t_env **env)
 
 char	*get_env_value(char *key, t_env **env)
 {
+	char	*result;
+
 	while ((*env)->next)
 	{
 		if (ft_strcmp((*env)->current_key, key) == 0)
-			return (ft_strdup((*env)->current_value));
+		{
+			result = ft_strdup((*env)->current_value);
+			return (reset_env(env), result);
+		}
 		(*env) = (*env)->next;
 	}
 	if (ft_strcmp((*env)->current_key, key) == 0)
-		return (ft_strdup((*env)->current_value));
-	return (ft_strdup(""));
+	{
+		result = ft_strdup((*env)->current_value);
+		return (reset_env(env), result);
+	}
+	return (reset_env(env), ft_strdup(""));
 }
 
 char	*expand_exit_status(int exit_status)

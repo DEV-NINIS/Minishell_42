@@ -91,6 +91,8 @@ char	**convert_l_env_to_char_env(t_env **env)
 	result[size_y] = NULL;
 	while ((*env)->next != NULL)
 		convert_l_env_to_char_env_utils(env, result, &count);
+	while ((*env)->previous != NULL)
+		(*env) = (*env)->previous;
 	return (result);
 }
 
